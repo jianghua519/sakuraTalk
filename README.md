@@ -146,3 +146,60 @@ TTS_PROVIDER=local
 - Windows: `pip install pyttsx3 SpeechRecognition pyaudio`
 - macOS: `pip install pyttsx3 SpeechRecognition` 和 `brew install portaudio`
 - Linux: `pip install pyttsx3 SpeechRecognition` 和 `sudo apt-get install portaudio19-dev python3-pyaudio`
+
+## 安装日语语音包
+
+如果在使用本地TTS服务时遇到"未找到日语语音包，将使用系统默认语音"的提示，需要手动安装日语语音包：
+
+### Windows系统
+
+1. 打开"设置" -> "时间和语言" -> "语言" 
+2. 点击"首选语言"下的"日语"（如果没有，点击"添加语言"并添加日语）
+3. 点击日语，选择"选项"
+4. 在"语音"部分，点击"添加语音包"并安装日语语音包
+5. 安装完成后，可能需要重启系统
+
+### macOS系统
+
+macOS系统通常自带日语语音，如果没有，可以尝试以下步骤：
+
+1. 打开"系统偏好设置" -> "辅助功能" -> "语音"
+2. 点击"系统语音"下的"自定"
+3. 在弹出的窗口中查找是否有日语语音，如果没有可以尝试添加
+
+### Linux系统
+
+在基于Debian的系统（如Ubuntu）上：
+
+```bash
+# 安装日语语音包
+sudo apt-get install festival festvox-kallpc16k
+sudo apt-get install espeak-ng espeak-ng-data
+
+# 对于日语支持
+sudo apt-get install festvox-hts
+```
+
+### 验证语音包安装
+
+可以通过以下Python脚本验证是否成功安装日语语音包：
+
+```python
+import pyttsx3
+
+engine = pyttsx3.init()
+voices = engine.getProperty('voices')
+
+for voice in voices:
+    print(f"Voice ID: {voice.id}")
+    print(f"Name: {voice.name}")
+    print(f"Languages: {voice.languages}")
+    print("---")
+
+# 测试日语语音
+japanese_text = "こんにちは、これはテストです。"
+engine.say(japanese_text)
+engine.runAndWait()
+```
+
+如果成功安装了日语语音包，应该能在输出中看到包含日语标识的语音，并且能够正确播放日语。

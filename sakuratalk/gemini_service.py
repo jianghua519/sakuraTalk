@@ -2,10 +2,20 @@ import sys
 import os
 import json
 import re
+import logging
 import google.generativeai as genai
 from http import HTTPStatus
 from tenacity import retry, stop_after_attempt, wait_exponential
 from config import Config
+
+# 配置日志
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 class GeminiService:
     """
@@ -45,14 +55,47 @@ class GeminiService:
     "suggestion_chinese": "建议句子的中文意思"
 }'''
 
+            # 构建消息列表
+            messages = [
+                {
+                    'role': 'system',
+                    'content': system_prompt
+                }
+            ]
+            
+            # 添加对话历史（如果有的话）
+            if conversation_history:
+                messages.extend(conversation_history)
+            
+            # 添加当前用户输入
+            messages.append({
+                'role': 'user',
+                'content': user_input
+            })
+            
             # 构建完整的提示
-            full_prompt = system_prompt + "\n\n用户输入: " + user_input
+            # 将对话历史和当前输入组合成一个字符串
+            full_prompt = system_prompt + "\n\n对话历史:\n"
+            for msg in messages[1:]:  # 跳过系统提示
+                if msg['role'] == 'user':
+                    full_prompt += f"用户: {msg['content']}\n"
+                elif msg['role'] == 'assistant':
+                    full_prompt += f"助手: {msg['content']}\n"
+            
+            full_prompt += f"\n当前用户输入: {user_input}\n请根据以上对话历史进行回复。"
+            
+            # 记录发送给模型的请求
+            logger.info(f"Sending request to Gemini API with model gemini-pro")
+            logger.info(f"Prompt: {full_prompt}")
             
             # 调用Gemini API
             response = self.model.generate_content(full_prompt)
             
             # 提取AI回复
             ai_response = response.text
+            
+            # 记录模型的响应
+            logger.info(f"Received response from Gemini API: {ai_response}")
             
             # 尝试解析JSON格式的回复
             try:
@@ -89,7 +132,7 @@ class GeminiService:
             }
                 
         except Exception as e:
-            print(f"调用Gemini API时出错: {str(e)}")
+            logger.error(f"调用Gemini API时出错: {str(e)}")
             # 出现错误时返回错误信息
             return {
                 'error': str(e)
@@ -116,12 +159,19 @@ class GeminiService:
             4. 语法点：[相关的日语语法知识点]
             """
             
+            full_prompt = "你是一个专业的日语语法纠正助手。" + prompt
+            
+            # 记录发送给模型的请求
+            logger.info(f"Sending grammar correction request to Gemini API with model gemini-pro")
+            logger.info(f"Prompt: {full_prompt}")
+            
             # 调用Gemini API进行语法纠错
-            response = self.model.generate_content(
-                "你是一个专业的日语语法纠正助手。" + prompt
-            )
+            response = self.model.generate_content(full_prompt)
             
             correction_result = response.text
+            
+            # 记录模型的响应
+            logger.info(f"Received grammar correction response from Gemini API: {correction_result}")
             
             return {
                 'corrected_text': correction_result,
@@ -130,7 +180,7 @@ class GeminiService:
             }
                 
         except Exception as e:
-            print(f"语法纠错时出错: {str(e)}")
+            logger.error(f"语法纠错时出错: {str(e)}")
             return {
                 'error': str(e)
             }

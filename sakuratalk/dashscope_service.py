@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import re
+import logging
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -11,6 +12,15 @@ from dashscope import Generation
 from http import HTTPStatus
 from tenacity import retry, stop_after_attempt, wait_exponential
 from config import Config
+
+# 配置日志
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 class DashScopeService:
     """
@@ -58,13 +68,21 @@ class DashScopeService:
             
             # 添加对话历史（如果有的话）
             if conversation_history:
-                messages.extend(conversation_history)
+                # 确保对话历史格式正确，只添加符合格式的对话条目
+                for item in conversation_history:
+                    if isinstance(item, dict) and 'role' in item and 'content' in item:
+                        messages.append(item)
             
-            # 添加当前用户输入
-            messages.append({
-                'role': 'user',
-                'content': user_input
-            })
+            # 添加当前用户输入（确保格式正确）
+            if user_input:
+                messages.append({
+                    'role': 'user',
+                    'content': str(user_input)
+                })
+            
+            # 记录发送给模型的请求
+            logger.info(f"Sending request to DashScope API with model qwen-plus")
+            logger.info(f"Messages: {json.dumps(messages, ensure_ascii=False)}")
             
             # 调用通义千问API
             response = Generation.call(
@@ -76,6 +94,9 @@ class DashScopeService:
             if response.status_code == HTTPStatus.OK:
                 # 提取AI回复
                 ai_response = response.output.choices[0].message.content
+                
+                # 记录模型的响应
+                logger.info(f"Received response from DashScope API: {ai_response}")
                 
                 # 尝试解析JSON格式的回复
                 try:
@@ -111,10 +132,12 @@ class DashScopeService:
                     'suggestion_translation': parsed_response.get('suggestion_chinese', '你好吗？')
                 }
             else:
-                raise Exception(f"API调用失败: {response.message}")
+                error_msg = f"API调用失败: {response.message}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
                 
         except Exception as e:
-            print(f"调用DashScope API时出错: {str(e)}")
+            logger.error(f"调用DashScope API时出错: {str(e)}")
             # 出现错误时返回错误信息
             return {
                 'error': str(e)
@@ -156,6 +179,10 @@ class DashScopeService:
                 {'role': 'user', 'content': prompt}
             ]
             
+            # 记录发送给模型的请求
+            logger.info(f"Sending grammar correction request to DashScope API with model qwen-plus")
+            logger.info(f"Messages: {json.dumps(messages, ensure_ascii=False)}")
+            
             # 调用通义千问API进行语法纠错
             response = Generation.call(
                 model='qwen-plus',
@@ -166,16 +193,21 @@ class DashScopeService:
             if response.status_code == HTTPStatus.OK:
                 correction_result = response.output.choices[0].message.content
                 
+                # 记录模型的响应
+                logger.info(f"Received grammar correction response from DashScope API: {correction_result}")
+                
                 return {
                     'corrected_text': correction_result,
                     'errors': [],  # 在实际应用中可以解析错误详情
                     'suggestions': []
                 }
             else:
-                raise Exception(f"语法纠错API调用失败: {response.message}")
+                error_msg = f"语法纠错API调用失败: {response.message}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
                 
         except Exception as e:
-            print(f"语法纠错时出错: {str(e)}")
+            logger.error(f"语法纠错时出错: {str(e)}")
             return {
                 'error': str(e)
             }

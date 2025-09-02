@@ -2,10 +2,20 @@ import sys
 import os
 import json
 import re
+import logging
 import requests
 from http import HTTPStatus
 from tenacity import retry, stop_after_attempt, wait_exponential
 from config import Config
+
+# 配置日志
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 class OllamaService:
     """
@@ -14,7 +24,7 @@ class OllamaService:
     def __init__(self):
         # 初始化Ollama API基础URL
         self.api_base = Config.OLLAMA_API_BASE
-        self.model = "llama2"  # 默认模型
+        self.model = "gemma3:12b"  # 默认模型
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def get_chat_response(self, user_input, conversation_history=None):
@@ -55,6 +65,9 @@ class OllamaService:
             
             # 添加对话历史（如果有的话）
             if conversation_history:
+                # 确保对话历史是列表类型
+                if not isinstance(conversation_history, list):
+                    conversation_history = [conversation_history]
                 messages.extend(conversation_history)
             
             # 添加当前用户输入
@@ -63,20 +76,31 @@ class OllamaService:
                 'content': user_input
             })
             
+            # 记录完整的 messages 结构
+            logger.info(f"Constructed messages: {json.dumps(messages, ensure_ascii=False)}")
+            
+            # 记录发送给模型的请求
+            request_data = {
+                "model": self.model,
+                "messages": messages,
+                "stream": False
+            }
+            logger.info(f"Sending request to Ollama API at {self.api_base}/chat")
+            logger.info(f"Request data: {json.dumps(request_data, ensure_ascii=False)}")
+            
             # 调用Ollama API
             response = requests.post(
                 f"{self.api_base}/chat",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": False
-                },
+                json=request_data,
                 headers={"Content-Type": "application/json"}
             )
             
             if response.status_code == 200:
                 result = response.json()
                 ai_response = result['message']['content']
+                
+                # 记录模型的响应
+                logger.info(f"Received response from Ollama API: {ai_response}")
                 
                 # 尝试解析JSON格式的回复
                 try:
@@ -102,20 +126,22 @@ class OllamaService:
                 
                 # 确保所有字段都有默认值
                 return {
-                    'message': parsed_response.get('japanese'),
+                    'message': parsed_response.get('japanese', '暂无回复'),
                     'translation': parsed_response.get('chinese', '暂无翻译'),
                     'hiragana': parsed_response.get('hiragana', '暂无平假名'),
                     'pronunciation_score': parsed_response.get('pronunciation_score', 85),
-                    'user_pronunciation_score': 80,  # 默认用户发音评分
+                    'user_pronunciation_score': parsed_response.get('user_pronunciation_score', 80),
                     'next_suggestion': parsed_response.get('next_suggestion', 'お元気ですか？'),
                     'suggestion_hiragana': parsed_response.get('suggestion_hiragana', 'おげんきですか？'),
                     'suggestion_translation': parsed_response.get('suggestion_chinese', '你好吗？')
                 }
             else:
-                raise Exception(f"Ollama API调用失败: {response.text}")
+                error_msg = f"Ollama API调用失败: {response.text}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
                 
         except Exception as e:
-            print(f"调用Ollama API时出错: {str(e)}")
+            logger.error(f"调用Ollama API时出错: {str(e)}")
             # 出现错误时返回错误信息
             return {
                 'error': str(e)
@@ -142,14 +168,19 @@ class OllamaService:
             4. 语法点：[相关的日语语法知识点]
             """
             
+            # 记录发送给模型的请求
+            request_data = {
+                "model": self.model,
+                "prompt": "你是一个专业的日语语法纠正助手。" + prompt,
+                "stream": False
+            }
+            logger.info(f"Sending grammar correction request to Ollama API at {self.api_base}/generate")
+            logger.info(f"Request data: {json.dumps(request_data, ensure_ascii=False)}")
+            
             # 调用Ollama API进行语法纠错
             response = requests.post(
                 f"{self.api_base}/generate",
-                json={
-                    "model": self.model,
-                    "prompt": "你是一个专业的日语语法纠正助手。" + prompt,
-                    "stream": False
-                },
+                json=request_data,
                 headers={"Content-Type": "application/json"}
             )
             
@@ -157,16 +188,21 @@ class OllamaService:
                 result = response.json()
                 correction_result = result['response']
                 
+                # 记录模型的响应
+                logger.info(f"Received grammar correction response from Ollama API: {correction_result}")
+                
                 return {
                     'corrected_text': correction_result,
                     'errors': [],  # 在实际应用中可以解析错误详情
                     'suggestions': []
                 }
             else:
-                raise Exception(f"Ollama语法纠错API调用失败: {response.text}")
+                error_msg = f"Ollama语法纠错API调用失败: {response.text}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
                 
         except Exception as e:
-            print(f"语法纠错时出错: {str(e)}")
+            logger.error(f"语法纠错时出错: {str(e)}")
             return {
                 'error': str(e)
             }

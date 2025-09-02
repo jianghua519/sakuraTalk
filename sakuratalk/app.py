@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 导入自定义模块
 from config import Config
+from conversation_history import ConversationHistory
 
 # 根据配置导入相应的服务
 # LLM服务
@@ -48,6 +49,9 @@ else:
     from aliyun_service import AliyunTTS
     tts_service = AliyunTTS()
 
+# 初始化对话历史管理器
+conversation_history = ConversationHistory(max_history=10)
+
 def create_app():
     """
     创建Flask应用
@@ -72,14 +76,22 @@ def create_app():
         处理聊天请求
         """
         try:
+            global conversation_history
+            
             data = request.get_json()
             user_message = data.get('message', '')
             
-            # 调用配置的AI服务
-            response = ai_service.get_chat_response(user_message)
+            # 获取格式化的对话历史用于LLM
+            history_for_llm = conversation_history.get_history_for_llm()
+            
+            # 调用配置的AI服务，传入对话历史
+            response = ai_service.get_chat_response(user_message, history_for_llm)
             
             if 'error' in response:
                 return jsonify({'error': response['error']}), 500
+            
+            # 将当前交互添加到对话历史中（仅存储用户输入和AI的日语回复）
+            conversation_history.add_interaction(user_message, response['message'])
             
             # 构建返回结果，确保包含所有字段
             result = {
