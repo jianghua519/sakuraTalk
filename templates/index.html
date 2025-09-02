@@ -14,92 +14,99 @@
             <p>日语对话练习助手</p>
         </header>
 
-        <div class="chat-container">
-            <div class="chat-history" id="chatHistory">
-                <div class="message ai-message">
-                    <strong>AI助手:</strong>
-                    <p>こんにちは！私はあなたの日本語学習アシスタントです。一緒に練習しましょう！</p>
+        <div class="main-content">
+            <div class="chat-section">
+                <div class="chat-container">
+                    <div class="chat-history" id="chatHistory">
+                        <div class="message ai-message">
+                            <strong>AI助手:</strong>
+                            <p>こんにちは！私はあなたの日本語学習アシスタントです。一緒に練習しましょう！</p>
+                        </div>
+                    </div>
+
+                    <div class="input-area">
+                        <div class="input-controls">
+                            <div class="text-input">
+                                <input type="text" id="userInput" placeholder="输入日语或点击麦克风说话...">
+                                <button id="sendButton">发送</button>
+                            </div>
+                            <div class="voice-controls">
+                                <button id="recordButton" class="mic-button">
+                                    <span id="micIcon">🎤</span>
+                                    <span id="recordingIndicator" class="recording-dot"></span>
+                                </button>
+                                <span id="recordStatus">点击麦克风开始录音</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="input-area">
-                <div class="text-input">
-                    <input type="text" id="userInput" placeholder="输入日语或点击麦克风说话...">
-                    <button id="sendButton">发送</button>
-                </div>
-                
-                <div class="voice-controls">
-                    <button id="recordButton" class="mic-button">
-                        <span id="micIcon">🎤</span>
-                        <span id="recordingIndicator" class="recording-dot"></span>
-                    </button>
-                    <span id="recordStatus">点击麦克风开始录音</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="details-panel">
-            <div class="detail-section">
-                <h3>AI助手回复详情</h3>
-                <div class="ai-response-details">
-                    <div class="detail-item">
-                        <label>平假名:</label>
-                        <span id="aiHiragana">Konnichiwa! Watashi wa anata no nihongo gakushū ashisutanto desu. Issho ni renshū shimashou!</span>
+            <div class="details-section">
+                <div class="details-panel">
+                    <div class="detail-section">
+                        <h3>AI助手回复详情</h3>
+                        <div class="ai-response-details">
+                            <div class="detail-item">
+                                <label>平假名:</label>
+                                <span id="aiHiragana">Konnichiwa! Watashi wa anata no nihongo gakushū ashisutanto desu. Issho ni renshū shimashou!</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>日文原文:</label>
+                                <span id="aiJapaneseText">こんにちは！私はあなたの日本語学習アシスタントです。一緒に練習しましょう！</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>中文翻译:</label>
+                                <span id="aiTranslation">你好！我是你的日语学习助手。让我们一起练习吧！</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>发音评分:</label>
+                                <span id="aiPronunciationScore">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="playback-controls">
+                            <button id="playUserVoice" class="playback-button" disabled>
+                                <span>▶️</span> 播放我的语音
+                            </button>
+                            <button id="playAiVoice" class="playback-button" disabled>
+                                <span>▶️</span> 播放AI语音
+                            </button>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <label>日文原文:</label>
-                        <span id="aiJapaneseText">こんにちは！私はあなたの日本語学習アシスタントです。一緒に練習しましょう！</span>
+                    
+                    <div class="detail-section">
+                        <h3>你的发音详情</h3>
+                        <div class="user-response-details">
+                            <div class="detail-item">
+                                <label>识别文本:</label>
+                                <span id="userRecognizedText">-</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>发音评分:</label>
+                                <span id="userPronunciationScore">-</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <label>中文翻译:</label>
-                        <span id="aiTranslation">你好！我是你的日语学习助手。让我们一起练习吧！</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>发音评分:</label>
-                        <span id="aiPronunciationScore">-</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>你的发音详情</h3>
-                <div class="user-response-details">
-                    <div class="detail-item">
-                        <label>识别文本:</label>
-                        <span id="userRecognizedText">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>发音评分:</label>
-                        <span id="userPronunciationScore">-</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>下一句练习建议</h3>
-                <div class="suggestion-details">
-                    <div class="detail-item">
-                        <label>建议语句:</label>
-                        <span id="nextSuggestion">お元気ですか？</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>平假名:</label>
-                        <span id="suggestionHiragana">おげんきですか？</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>中文意思:</label>
-                        <span id="suggestionTranslation">你好吗？</span>
+                    
+                    <div class="detail-section">
+                        <h3>下一句练习建议</h3>
+                        <div class="suggestion-details">
+                            <div class="detail-item">
+                                <label>建议语句:</label>
+                                <span id="nextSuggestion">お元気ですか？</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>平假名:</label>
+                                <span id="suggestionHiragana">おげんきですか？</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>中文意思:</label>
+                                <span id="suggestionTranslation">你好吗？</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="playback-controls">
-                <button id="playUserVoice" class="playback-button" disabled>
-                    <span>▶️</span> 播放我的语音
-                </button>
-                <button id="playAiVoice" class="playback-button" disabled>
-                    <span>▶️</span> 播放AI语音
-                </button>
             </div>
         </div>
 

@@ -58,13 +58,15 @@ class ConversationHistory:
             # 添加用户消息
             formatted_history.append({
                 'role': 'user',
-                'content': f"[时间: {interaction['timestamp']}] {interaction['user']}"
+                'content': f"{interaction['user']}"
             })
+            #'content': f"[时间: {interaction['timestamp']}] {interaction['user']}"
             # 添加AI助手消息
             formatted_history.append({
                 'role': 'assistant',
-                'content': f"[时间: {interaction['timestamp']}] {interaction['ai']}"
+                'content': f" {interaction['ai']}"
             })
+            # 'content': f"[时间: {interaction['timestamp']}] {interaction['ai']}"
         return formatted_history
     
     def clear_history(self) -> None:

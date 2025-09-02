@@ -49,7 +49,7 @@ class DashScopeService(LLMBaseService):
         """
         try:
             # 使用集中管理的系统提示词
-            system_prompt = PromptManager.JAPANESE_LEARNING_ASSISTANT_JA
+            system_prompt = PromptManager.JAPANESE_LEARNING_ASSISTANT
 
             messages = [
                 {

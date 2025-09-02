@@ -33,7 +33,7 @@ class OllamaService(LLMBaseService):
         super().__init__()
         # 初始化Ollama API基础URL
         self.api_base = Config.OLLAMA_API_BASE
-        self.model = "gemma3:12b"  # 默认模型
+        self.model = "gemma3:12b"
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def get_chat_response(self, user_input: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, Any]:
@@ -45,7 +45,7 @@ class OllamaService(LLMBaseService):
         """
         try:
             # 使用集中管理的系统提示词
-            system_prompt = PromptManager.JAPANESE_LEARNING_ASSISTANT
+            system_prompt = PromptManager.JAPANESE_LEARNING_ASSISTANT_JA
 
             # 构建消息列表
             messages = [
