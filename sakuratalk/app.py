@@ -6,51 +6,20 @@ from flask import Flask, request, jsonify, render_template
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 导入自定义模块
-from config import Config
-from conversation_history import ConversationHistory
+from .config import Config
+from .conversation_history import ConversationHistory
+from .factory import ServiceFactory
 
-# 根据配置导入相应的服务
-# LLM服务
-if Config.LLM_PROVIDER == 'dashscope':
-    from dashscope_service import DashScopeService
-    ai_service = DashScopeService()
-elif Config.LLM_PROVIDER == 'openai':
-    from openai_service import OpenAIService
-    ai_service = OpenAIService()
-elif Config.LLM_PROVIDER == 'gemini':
-    from gemini_service import GeminiService
-    ai_service = GeminiService()
-elif Config.LLM_PROVIDER == 'ollama':
-    from ollama_service import OllamaService
-    ai_service = OllamaService()
-else:
-    from dashscope_service import DashScopeService
-    ai_service = DashScopeService()
-
-# STT服务
-if Config.STT_PROVIDER == 'dashscope':
-    from aliyun_service import AliyunSTT
-    stt_service = AliyunSTT()
-elif Config.STT_PROVIDER == 'local':
-    from local_stt_service import LocalSTTService
-    stt_service = LocalSTTService()
-else:
-    from aliyun_service import AliyunSTT
-    stt_service = AliyunSTT()
-
-# TTS服务
-if Config.TTS_PROVIDER == 'dashscope':
-    from aliyun_service import AliyunTTS
-    tts_service = AliyunTTS()
-elif Config.TTS_PROVIDER == 'local':
-    from local_tts_service import LocalTTSService
-    tts_service = LocalTTSService()
-else:
-    from aliyun_service import AliyunTTS
-    tts_service = AliyunTTS()
+# 初始化服务工厂
+service_factory = ServiceFactory()
 
 # 初始化对话历史管理器
 conversation_history = ConversationHistory(max_history=10)
+
+# 初始化服务
+ai_service = service_factory.create_llm_service()
+stt_service = service_factory.create_stt_service()
+tts_service = service_factory.create_tts_service()
 
 def create_app():
     """

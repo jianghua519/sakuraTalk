@@ -11,7 +11,12 @@ import dashscope
 from dashscope import Generation
 from http import HTTPStatus
 from tenacity import retry, stop_after_attempt, wait_exponential
-from config import Config
+from typing import List, Dict, Any
+
+from ...config import Config
+from ...exceptions import ServiceCallError
+from ...prompts import PromptManager
+from .llm_base import LLMBaseService
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -22,16 +27,20 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-class DashScopeService:
+class DashScopeService(LLMBaseService):
     """
     通义千问服务接口（日语学习助手）
     """
     def __init__(self):
+        """
+        初始化DashScope服务
+        """
+        super().__init__()
         # 初始化DashScope API密钥
         dashscope.api_key = Config.DASHSCOPE_API_KEY
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def get_chat_response(self, user_input, conversation_history=None):
+    def get_chat_response(self, user_input: str, conversation_history: List[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         获取聊天响应
         :param user_input: 用户输入
@@ -39,29 +48,8 @@ class DashScopeService:
         :return: AI响应
         """
         try:
-            # 改进版系统提示词
-            system_prompt = '''あなたはプロの日本語学習アシスタントです。  
-ユーザーと自然で友好的な日本語会話をしながら、学習をサポートしてください。  
-
-必ず以下の情報をJSON形式で返してください。他の文章は不要です。  
-
-{
-    "japanese": "AIの日本語回答（自然で友好的な会話文）",
-    "hiragana": "日本語回答のひらがな表記",
-    "chinese": "上記日本語の中国語翻訳",
-    "pronunciation_score": 85,
-    "improvement_tips": "ユーザーの発話に対する簡単な改善ポイント",
-    "next_suggestion": "次に練習できる日本語の文",
-    "suggestion_hiragana": "上記文のひらがな表記",
-    "suggestion_chinese": "上記文の中国語訳"
-}
-
-追加ルール:  
-1. 回答は自然な日本語会話にしてください。  
-2. improvement_tips には簡潔に改善点を一つ示してください（例: 助詞の使い方、より自然な表現など）。  
-3. next_suggestion はユーザーのレベルに応じて難易度を調整してください。  
-4. すべての回答は上記JSON形式のみで返してください。
-'''
+            # 使用集中管理的系统提示词
+            system_prompt = PromptManager.JAPANESE_LEARNING_ASSISTANT_JA
 
             messages = [
                 {
@@ -81,8 +69,7 @@ class DashScopeService:
             })
             
             # 记录发送给模型的请求
-            logger.info(f"Sending request to DashScope API with model qwen-plus")
-            logger.info(f"Messages: {json.dumps(messages, ensure_ascii=False)}")
+            self._log_request(messages)
             
             # 调用通义千问API
             response = Generation.call(
@@ -96,7 +83,7 @@ class DashScopeService:
                 ai_response = response.output.choices[0].message.content
                 
                 # 记录模型的响应
-                logger.info(f"Received response from DashScope API: {ai_response}")
+                self._log_response(ai_response)
                 
                 # 尝试解析JSON格式的回复
                 try:
@@ -132,50 +119,31 @@ class DashScopeService:
                 }
             else:
                 error_msg = f"API调用失败: {response.message}"
-                logger.error(error_msg)
-                raise Exception(error_msg)
+                self.logger.error(error_msg)
+                raise ServiceCallError(error_msg)
                 
         except Exception as e:
-            logger.error(f"调用DashScope API时出错: {str(e)}")
+            self.logger.error(f"调用DashScope API时出错: {str(e)}")
             return {
                 'error': str(e)
             }
     
-    def _parse_ai_response(self, response_text):
-        """
-        解析AI回复文本，提取日语、中文翻译、注音和评分
-        :param response_text: AI回复的原始文本
-        :return: 解析后的字典
-        """
-        return {}
-    
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def correct_grammar(self, text):
+    def correct_grammar(self, text: str) -> Dict[str, Any]:
         """
         语法纠错
         :param text: 需要纠错的文本
         :return: 纠错结果
         """
         try:
-            prompt = f"""
-            以下の日文に文法の誤りがあれば修正してください：
-
-            "{text}"
-
-            回答フォーマット：
-            1. 原文：[ユーザーの入力]
-            2. 修正版：[修正後の文]
-            3. エラー説明：[具体的な誤りと理由]
-            4. 文法ポイント：[関連する文法知識]
-            """
+            prompt = PromptManager.JAPANESE_GRAMMAR_CORRECTION_JA.format(text=text)
             
             messages = [
                 {'role': 'system', 'content': 'あなたはプロの日本語文法訂正アシスタントです。'},
                 {'role': 'user', 'content': prompt}
             ]
             
-            logger.info(f"Sending grammar correction request to DashScope API with model qwen-plus")
-            logger.info(f"Messages: {json.dumps(messages, ensure_ascii=False)}")
+            self._log_request(messages)
             
             response = Generation.call(
                 model='qwen-plus',
@@ -185,7 +153,7 @@ class DashScopeService:
             
             if response.status_code == HTTPStatus.OK:
                 correction_result = response.output.choices[0].message.content
-                logger.info(f"Received grammar correction response from DashScope API: {correction_result}")
+                self._log_response(correction_result)
                 
                 return {
                     'corrected_text': correction_result,
@@ -194,11 +162,11 @@ class DashScopeService:
                 }
             else:
                 error_msg = f"语法纠错API调用失败: {response.message}"
-                logger.error(error_msg)
-                raise Exception(error_msg)
+                self.logger.error(error_msg)
+                raise ServiceCallError(error_msg)
                 
         except Exception as e:
-            logger.error(f"语法纠错时出错: {str(e)}")
+            self.logger.error(f"语法纠错时出错: {str(e)}")
             return {
                 'error': str(e)
             }

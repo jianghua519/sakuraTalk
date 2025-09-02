@@ -3,16 +3,25 @@ import os
 import json
 import wave
 import speech_recognition as sr
-from config import Config
+from typing import Dict, Any, Optional
 
-class LocalSTTService:
+from ...config import Config
+from ...exceptions import ServiceCallError
+from .stt_base import STTBaseService
+
+
+class LocalSTTService(STTBaseService):
     """
     本地语音识别服务（使用SpeechRecognition库）
     """
     def __init__(self):
+        """
+        初始化本地STT服务
+        """
+        super().__init__()
         self.recognizer = sr.Recognizer()
     
-    def recognize_voice(self, audio_file_path=None):
+    def recognize_voice(self, audio_file_path: Optional[str] = None) -> Dict[str, Any]:
         """
         识别语音数据
         :param audio_file_path: 音频文件路径
@@ -48,15 +57,15 @@ class LocalSTTService:
                         'confidence': 0.7  # Sphinx置信度较低
                     }
                 except sr.UnknownValueError:
-                    raise Exception("无法识别音频内容")
+                    raise ServiceCallError("无法识别音频内容")
                 except sr.RequestError as e:
-                    raise Exception(f"Sphinx识别错误: {e}")
+                    raise ServiceCallError(f"Sphinx识别错误: {e}")
             except sr.RequestError as e:
-                raise Exception(f"Google语音识别错误: {e}")
+                raise ServiceCallError(f"Google语音识别错误: {e}")
                 
         except Exception as e:
             # 出现错误时返回错误信息
-            print(f"本地语音识别错误: {str(e)}")
+            self.logger.error(f"本地语音识别错误: {str(e)}")
             return {
                 'error': str(e)
             }
