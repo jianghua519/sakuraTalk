@@ -43,8 +43,22 @@ class SakuraTalk {
             }
         });
         
-        // 录音事件
-        this.recordButton.addEventListener('click', () => this.toggleRecording());
+        // 录音事件 - 添加移动端触摸支持
+        this.recordButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.toggleRecording();
+        });
+        
+        // 添加移动端触摸事件支持
+        this.recordButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.startRecording();
+        });
+        
+        this.recordButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.stopRecording();
+        });
         
         // 播放控制事件
         this.playUserVoice.addEventListener('click', () => this.playUserVoiceRecording());
