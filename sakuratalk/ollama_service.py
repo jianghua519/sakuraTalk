@@ -65,9 +65,6 @@ class OllamaService:
             
             # 添加对话历史（如果有的话）
             if conversation_history:
-                # 确保对话历史是列表类型
-                if not isinstance(conversation_history, list):
-                    conversation_history = [conversation_history]
                 messages.extend(conversation_history)
             
             # 添加当前用户输入
@@ -75,9 +72,6 @@ class OllamaService:
                 'role': 'user',
                 'content': user_input
             })
-            
-            # 记录完整的 messages 结构
-            logger.info(f"Constructed messages: {json.dumps(messages, ensure_ascii=False)}")
             
             # 记录发送给模型的请求
             request_data = {
@@ -126,11 +120,11 @@ class OllamaService:
                 
                 # 确保所有字段都有默认值
                 return {
-                    'message': parsed_response.get('japanese', '暂无回复'),
+                    'message': parsed_response.get('japanese'),
                     'translation': parsed_response.get('chinese', '暂无翻译'),
                     'hiragana': parsed_response.get('hiragana', '暂无平假名'),
                     'pronunciation_score': parsed_response.get('pronunciation_score', 85),
-                    'user_pronunciation_score': parsed_response.get('user_pronunciation_score', 80),
+                    'user_pronunciation_score': 80,  # 默认用户发音评分
                     'next_suggestion': parsed_response.get('next_suggestion', 'お元気ですか？'),
                     'suggestion_hiragana': parsed_response.get('suggestion_hiragana', 'おげんきですか？'),
                     'suggestion_translation': parsed_response.get('suggestion_chinese', '你好吗？')

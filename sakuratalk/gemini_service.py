@@ -42,7 +42,7 @@ class GeminiService:
 1. 平假名：提供日语回复的平假名形式
 2. 中文翻译：提供刚才日语回复的中文翻译
 3. 发音评分：对用户的表达进行评分(0-100分)
-4. 下一句练习建议：提供下一句可以练习的日语句子以及平假名和中文意思
+4. 下一句练习建议：提供下一句可以练习的日语句子以及平假名和中文意思. 这个建议要和你的回复内容有关联,让对话连贯.
 
 请严格按照以下JSON格式回复，不要添加其他内容：
 {
@@ -56,33 +56,36 @@ class GeminiService:
 }'''
 
             # 构建消息列表
-            messages = [
-                {
-                    'role': 'system',
-                    'content': system_prompt
-                }
-            ]
+            messages = []
             
-            # 添加对话历史（如果有的话）
-            if conversation_history:
-                messages.extend(conversation_history)
-            
-            # 添加当前用户输入
+            # 添加系统提示
             messages.append({
-                'role': 'user',
-                'content': user_input
+                'role': 'system',
+                'content': system_prompt
             })
             
-            # 构建完整的提示
-            # 将对话历史和当前输入组合成一个字符串
-            full_prompt = system_prompt + "\n\n对话历史:\n"
-            for msg in messages[1:]:  # 跳过系统提示
-                if msg['role'] == 'user':
-                    full_prompt += f"用户: {msg['content']}\n"
-                elif msg['role'] == 'assistant':
-                    full_prompt += f"助手: {msg['content']}\n"
+            # 添加对话历史提示
+            if conversation_history and len(conversation_history) > 1:  # 确保有历史记录（除了系统提示）
+                messages.append({
+                    'role': 'system',
+                    'content': '以下是你与用户的历史对话记录，按时间顺序排列（较早的记录在前）：'
+                })
+                # 添加实际的历史记录（跳过初始的系统提示）
+                messages.extend(conversation_history[1:])
             
-            full_prompt += f"\n当前用户输入: {user_input}\n请根据以上对话历史进行回复。"
+            # 构建完整的提示
+            full_prompt = system_prompt
+            
+            # 添加历史记录说明和内容
+            if len(messages) > 1:
+                full_prompt += "\n\n以下是你与用户的历史对话记录，按时间顺序排列（较早的记录在前）："
+                for msg in messages[2:]:  # 跳过系统提示和历史记录说明
+                    if msg['role'] == 'user':
+                        full_prompt += f"\n用户: {msg['content']}"
+                    elif msg['role'] == 'assistant':
+                        full_prompt += f"\n助手: {msg['content']}"
+            
+            full_prompt += f"\n\n当前用户输入: {user_input}\n请根据以上对话历史进行回复。"
             
             # 记录发送给模型的请求
             logger.info(f"Sending request to Gemini API with model gemini-pro")

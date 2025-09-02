@@ -1,6 +1,7 @@
 import json
 from collections import deque
 from typing import List, Dict, Any
+from datetime import datetime
 
 
 class ConversationHistory:
@@ -24,6 +25,7 @@ class ConversationHistory:
         :param ai_response: AI回复（仅包含日语回复）
         """
         interaction = {
+            'timestamp': datetime.now().isoformat(),
             'user': user_input,
             'ai': ai_response
         }
@@ -43,17 +45,25 @@ class ConversationHistory:
         
         :return: 格式化的对话历史列表，适用于LLM API
         """
+        if not self.history:
+            return []
+            
         formatted_history = []
+        formatted_history.append({
+            'role': 'system',
+            'content': '以下是你与用户的历史对话记录，按时间顺序排列（较早的记录在前）：'
+        })
+        
         for interaction in self.history:
             # 添加用户消息
             formatted_history.append({
                 'role': 'user',
-                'content': interaction['user']
+                'content': f"[时间: {interaction['timestamp']}] {interaction['user']}"
             })
             # 添加AI助手消息
             formatted_history.append({
                 'role': 'assistant',
-                'content': interaction['ai']
+                'content': f"[时间: {interaction['timestamp']}] {interaction['ai']}"
             })
         return formatted_history
     

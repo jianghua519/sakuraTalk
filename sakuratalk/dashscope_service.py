@@ -68,17 +68,13 @@ class DashScopeService:
             
             # 添加对话历史（如果有的话）
             if conversation_history:
-                # 确保对话历史格式正确，只添加符合格式的对话条目
-                for item in conversation_history:
-                    if isinstance(item, dict) and 'role' in item and 'content' in item:
-                        messages.append(item)
+                messages.extend(conversation_history)
             
-            # 添加当前用户输入（确保格式正确）
-            if user_input:
-                messages.append({
-                    'role': 'user',
-                    'content': str(user_input)
-                })
+            # 添加当前用户输入
+            messages.append({
+                'role': 'user',
+                'content': user_input
+            })
             
             # 记录发送给模型的请求
             logger.info(f"Sending request to DashScope API with model qwen-plus")

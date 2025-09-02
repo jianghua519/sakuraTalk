@@ -37,23 +37,47 @@ class OpenAIService:
         :return: AI响应
         """
         try:
-            # 构建系统提示
+            # 构建提示词，设定场景为日语学习助手
             system_prompt = '''你是一个专业的日语学习助手，帮助用户练习日语对话。
-请用日语自然地回答用户的问题，并提供以下学习帮助：
-- 平假名：提供日语回复的平假名形式
-- 中文翻译：提供日语回复的中文翻译
-- 发音评分：对用户的表达进行评分(0-100分)
-- 下一句练习建议：提供适合的练习句子
+请用日语回答用户的问题，回复要自然、友好。
+同时，请提供以下额外信息帮助用户学习：
+1. 平假名：提供日语回复的平假名形式
+2. 中文翻译：提供刚才日语回复的中文翻译
+3. 发音评分：对用户的表达进行评分(0-100分)
+4. 下一句练习建议：提供下一句可以练习的日语句子以及平假名和中文意思
 
-请以严格的JSON格式回复，不要添加其他内容：'''
+请严格按照以下JSON格式回复，不要添加其他内容：
+{
+    "japanese": "你的日语回复",
+    "hiragana": "日语回复的平假名形式",
+    "chinese": "日语回复的中文翻译",
+    "pronunciation_score": 85,
+    "next_suggestion": "建议练习的日语句子",
+    "suggestion_hiragana": "建议句子的平假名",
+    "suggestion_chinese": "建议句子的中文意思"
+}'''
             
-            # 构建消息历史
             messages = [
-                {'role': 'system', 'content': system_prompt},
-                # 添加对话历史
-                *[{'role': msg['role'], 'content': msg['content']} for msg in conversation_history or []],
-                {'role': 'user', 'content': user_input}
+                {
+                    'role': 'system',
+                    'content': system_prompt
+                }
             ]
+            
+            # 添加对话历史（如果有的话）
+            if conversation_history:
+                # 转换对话历史格式以匹配OpenAI API
+                for msg in conversation_history:
+                    messages.append({
+                        'role': msg['role'],
+                        'content': msg['content']
+                    })
+            
+            # 添加当前用户输入
+            messages.append({
+                'role': 'user',
+                'content': user_input
+            })
             
             # 记录发送给模型的请求
             logger.info(f"Sending request to OpenAI API with model gpt-3.5-turbo")
