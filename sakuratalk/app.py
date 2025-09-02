@@ -7,13 +7,46 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 导入自定义模块
 from config import Config
-from aliyun_service import AliyunSTT, AliyunTTS
-from dashscope_service import DashScopeService
 
-# 初始化服务
-stt_service = AliyunSTT()
-tts_service = AliyunTTS()
-ai_service = DashScopeService()
+# 根据配置导入相应的服务
+# LLM服务
+if Config.LLM_PROVIDER == 'dashscope':
+    from dashscope_service import DashScopeService
+    ai_service = DashScopeService()
+elif Config.LLM_PROVIDER == 'openai':
+    from openai_service import OpenAIService
+    ai_service = OpenAIService()
+elif Config.LLM_PROVIDER == 'gemini':
+    from gemini_service import GeminiService
+    ai_service = GeminiService()
+elif Config.LLM_PROVIDER == 'ollama':
+    from ollama_service import OllamaService
+    ai_service = OllamaService()
+else:
+    from dashscope_service import DashScopeService
+    ai_service = DashScopeService()
+
+# STT服务
+if Config.STT_PROVIDER == 'dashscope':
+    from aliyun_service import AliyunSTT
+    stt_service = AliyunSTT()
+elif Config.STT_PROVIDER == 'local':
+    from local_stt_service import LocalSTTService
+    stt_service = LocalSTTService()
+else:
+    from aliyun_service import AliyunSTT
+    stt_service = AliyunSTT()
+
+# TTS服务
+if Config.TTS_PROVIDER == 'dashscope':
+    from aliyun_service import AliyunTTS
+    tts_service = AliyunTTS()
+elif Config.TTS_PROVIDER == 'local':
+    from local_tts_service import LocalTTSService
+    tts_service = LocalTTSService()
+else:
+    from aliyun_service import AliyunTTS
+    tts_service = AliyunTTS()
 
 def create_app():
     """
@@ -42,7 +75,7 @@ def create_app():
             data = request.get_json()
             user_message = data.get('message', '')
             
-            # 调用通义千问服务
+            # 调用配置的AI服务
             response = ai_service.get_chat_response(user_message)
             
             if 'error' in response:
@@ -71,7 +104,7 @@ def create_app():
         语音转文本
         """
         try:
-            # 调用阿里云语音识别服务
+            # 调用配置的STT服务
             response = stt_service.recognize_voice()
             
             if 'error' in response:
@@ -96,7 +129,7 @@ def create_app():
             data = request.get_json()
             text = data.get('text', '')
             
-            # 调用阿里云语音合成服务
+            # 调用配置的TTS服务
             response = tts_service.synthesize_text(text)
             
             if 'error' in response:
